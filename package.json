@@ -1,6 +1,6 @@
 {
   "name": "google-pse-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Model Context Protocol server for Google Programmable Search Engine (PSE)",
   "type": "module",
   "bin": {

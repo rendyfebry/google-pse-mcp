@@ -20,7 +20,7 @@ const [
 const server = new Server(
     {
         name: "google-pse",
-        version: "0.1.0"
+        version: "0.1.1"
     },
     {
         capabilities: {
@@ -42,7 +42,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     properties: {
                         q: { type: "string", description: "Search query" },
                         page: { type: "integer", description: "Page number" },
-                        size: { type: "integer", description: "Results size per page" },
+                        size: { type: "integer", description: "Number of search results to return per page. Valid values are integers between 1 and 10, inclusive." },
+                        sort: {
+                            type: "string",
+                            description: "Sort expression (e.g., 'date'). Only 'date' is supported by the API."
+                        },
+                        safe: {
+                            type: "boolean",
+                            description: "Enable safe search filtering. Default: false."
+                        },
+                        lr: { type: "string", description: "Restricts the search to documents written in a particular language (e.g., lang_en, lang_ja)" },
+                        siteRestricted: {
+                            type: "boolean",
+                            description: "If true, use the Site Restricted API endpoint (/v1/siterestrict). If false, use the standard API endpoint (/v1). Default: true."
+                        },
                     },
                     required: ["q"]
                 }
@@ -63,6 +76,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             q,
             page = 1,
             size = 10,
+            lr,
+            safe = false,
+            sort
         } = args;
 
         if (!q) {
@@ -80,6 +96,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         params.append("key", API_KEY);
         params.append("cx", CX);
         params.append("q", q);
+        params.append("fields", "items(title,htmlTitle,link,snippet,htmlSnippet)");
+
+        // Language restriction
+        if (lr !== undefined) {
+            params.append("lr", String(lr));
+        }
+
+        // SafeSearch mapping (boolean only)
+        if (safe !== undefined) {
+            if (typeof safe !== "boolean") {
+                throw new Error("SafeSearch (safe) must be a boolean");
+            }
+            params.append("safe", safe ? "active" : "off");
+        }
+
+        // Sort validation
+        if (sort !== undefined) {
+            if (sort === "date") {
+                params.append("sort", "date");
+            } else {
+                throw new Error("Only 'date' is supported for sort");
+            }
+        }
 
         // Pagination
         params.append("num", String(size));
@@ -91,7 +130,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             params.append("start", "1");
         }
 
-        const url = `${API_HOST}/v1/siterestrict?${params.toString()}`;
+        const siteRestricted = args.siteRestricted !== undefined ? args.siteRestricted : true;
+        const endpoint = siteRestricted ? "/v1/siterestrict" : "/v1";
+        const url = `${API_HOST}${endpoint}?${params.toString()}`;
         const response = await fetch(url, {
             method: "GET"
         });
