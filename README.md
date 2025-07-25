@@ -1,5 +1,9 @@
 [![MseeP.ai Security Assessment Badge](https://mseep.net/pr/rendyfebry-google-pse-mcp-badge.png)](https://mseep.ai/app/rendyfebry-google-pse-mcp)
 
+<a href="https://glama.ai/mcp/servers/@rendyfebry/google-pse-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@rendyfebry/google-pse-mcp/badge" alt="Google PSE Server MCP server" />
+</a>
+
 # Google Programmable Search Engine (PSE) MCP Server
 
 A Model Context Protocol (MCP) server for the Google Programmable Search Engine (PSE) API. This server exposes tools for searching the web with Google Custom Search engine, making them accessible to MCP-compatible clients such as VSCode, Copilot, and Claude Desktop.
