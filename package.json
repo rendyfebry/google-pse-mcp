@@ -16,11 +16,12 @@
     "test": "echo \"All Good\" && exit 0"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
-    "shx": "^0.3.4"
+    "shx": "^0.3.4",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.9.0",
-    "@types/node": "^22.14.1"
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@types/node": "^22.19.3",
+    "node-fetch": "^3.3.2"
   }
 }

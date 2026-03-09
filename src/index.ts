@@ -2,6 +2,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import fetch from "node-fetch";
+
+// Polyfill global fetch for Node < 18
+const globalAny = globalThis as any;
+if (typeof globalAny.fetch !== "function") {
+    globalAny.fetch = fetch as any;
+}
 
 /**
  * Read API config from process.argv:
@@ -18,10 +25,13 @@ const [
     SITE_RESTRICTED_ARG
 ] = process.argv;
 
-// Parse optional siteRestricted CLI flag; default to true when omitted.
+/**
+ * Parse optional siteRestricted CLI flag; default to false when omitted.
+ * To enable Site Restricted endpoint, explicitly pass "true" as the last CLI arg.
+ */
 const SITE_RESTRICTED_DEFAULT = SITE_RESTRICTED_ARG !== undefined
     ? SITE_RESTRICTED_ARG.toLowerCase() === "true"
-    : true;
+    : false;
 
 const server = new Server(
     {
@@ -60,7 +70,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         lr: { type: "string", description: "Restricts the search to documents written in a particular language (e.g., lang_en, lang_ja)" },
                         siteRestricted: {
                             type: "boolean",
-                            description: "If true, use the Site Restricted API endpoint (/v1/siterestrict). If false, use the standard API endpoint (/v1). Default: true."
+                            description: "If true, use the Site Restricted API endpoint (/v1/siterestrict). If false, use the standard API endpoint (/v1). Default: false (can be overridden via CLI flag or per-call argument)."
                         },
                     },
                     required: ["q"]
@@ -70,7 +80,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     };
 });
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     if (!request.params.arguments) {
         throw new Error("No arguments provided");
     }
@@ -102,7 +112,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         params.append("key", API_KEY);
         params.append("cx", CX);
         params.append("q", q);
-        params.append("fields", "items(title,htmlTitle,link,snippet,htmlSnippet)");
+        params.append("fields", "items(title,htmlTitle,link,snippet,htmlSnippet),searchInformation(totalResults)");
 
         // Language restriction
         if (lr !== undefined) {
@@ -126,11 +136,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             }
         }
 
-        // Pagination
-        params.append("num", String(size));
+                // Pagination
+        let effectiveSize = size;
+        if (typeof effectiveSize !== "number" || isNaN(effectiveSize)) {
+            effectiveSize = 10;
+        }
+        if (effectiveSize < 1) effectiveSize = 1;
+        if (effectiveSize > 10) effectiveSize = 10;
 
-        if (page > 0 && size > 0) {
-            const start = ((page - 1) * size) + 1;
+        params.append("num", String(effectiveSize));
+
+        if (page > 0 && effectiveSize > 0) {
+            const start = ((page - 1) * effectiveSize) + 1;
             params.append("start", String(start));
         } else {
             params.append("start", "1");
@@ -144,17 +161,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Search API request failed: ${response.status} ${response.statusText}`);
+            let bodyText = "";
+            try {
+                bodyText = await response.text();
+            } catch (e) {
+                // ignore
+            }
+            let hint = "";
+            if (response.status === 401 || response.status === 403) {
+                hint = "Authentication/authorization error. Verify API_KEY and CX, enable the Custom Search JSON API in Google Cloud, and ensure the key has access.";
+            }
+            throw new Error(`Search API request failed: ${response.status} ${response.statusText}${hint ? ` - ${hint}` : ""}${bodyText ? ` | body: ${bodyText}` : ""}`);
         }
 
-        const result = await response.json();
+        const result = await response.json() as { items?: any[]; searchInformation?: { totalResults?: string } };
 
-        // Return the items array (list of articles)
+        // Return items and meta information
         const items = result?.items ?? [];
+        const meta = result?.searchInformation ?? {};
         return {
             content: [{
                 type: "text",
-                text: JSON.stringify(items, null, 2)
+                text: JSON.stringify({ items, meta }, null, 2)
             }]
         };
     }

@@ -26,7 +26,7 @@ Open Command Palette → Preferences: Open Settings (JSON), then add:
           "https://www.googleapis.com/customsearch",
           "<api_key>",
           "<cx>",
-          "<siteRestricted>" // optional: true/false, defaults to true
+          "<siteRestricted>" // optional: true/false, defaults to false
         ]
       }
     }
@@ -54,7 +54,7 @@ If you are using [Cline](https://github.com/saoudrizwan/cline), add the followin
         "https://www.googleapis.com/customsearch",
         "<api_key>",
         "<cx>",
-        "<siteRestricted>" // optional flag, true/false, defaults to true
+        "<siteRestricted>" // optional flag, true/false, defaults to false
       ],
       "transportType": "stdio"
     }
@@ -66,7 +66,7 @@ If you are using [Cline](https://github.com/saoudrizwan/cline), add the followin
 ### Important Notes
 
 Don't forget to replace `<api_key>` and `<cx>` with your credentials in the configuration above.
-You can also provide an optional `<siteRestricted>` flag (`true` or `false`) as the last argument to control which Google Custom Search endpoint is used. If omitted, it defaults to `true`.
+You can also provide an optional `<siteRestricted>` flag (`true` or `false`) as the last argument to control which Google Custom Search endpoint is used. If omitted, it defaults to `false`.
 
 
 ## Available Tools
@@ -82,7 +82,7 @@ This MCP server provides the following tool:
      - `sort` (string, optional): Sort expression (only 'date' is supported)
      - `safe` (boolean, optional): Enable safe search filtering
      - `lr` (string, optional): Restrict search to a particular language (e.g., lang_en)
-     - `siteRestricted` (boolean, optional): Use the Site Restricted API endpoint; defaults to true unless overridden via CLI flag
+     - `siteRestricted` (boolean, optional): Use the Site Restricted API endpoint; defaults to false unless overridden via CLI flag
 
 ## Example Usage
 
